@@ -27,17 +27,6 @@ resource "aws_iam_policy" "citrine_task_policy" {
         Resource = [
           "${var.s3_bucket_arn}/*"
         ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "sqs:SendMessage",
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage"
-        ]
-        Resource = [
-          var.sqs_queue_arn
-        ]
       }
     ]
   })
@@ -88,9 +77,18 @@ resource "aws_iam_role_policy_attachment" "directus_task_policy" {
   policy_arn = aws_iam_policy.directus_task_policy.arn
 }
 
+# S3 Bucket for file storage
+resource "aws_s3_bucket" "main" {
+  bucket = var.s3_bucket_id
+
+  tags = merge(var.tags, {
+    Name = "${var.environment}-citrine-files"
+  })
+}
+
 # S3 Bucket Policy for file storage
 resource "aws_s3_bucket_policy" "main" {
-  bucket = var.s3_bucket_id
+  bucket = aws_s3_bucket.main.id
 
   policy = jsonencode({
     Version = "2012-10-17"

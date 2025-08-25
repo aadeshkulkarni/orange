@@ -165,6 +165,5 @@ module "iam" {
   database_password_secret_arn = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:citrine/db-password"
   s3_bucket_arn = "arn:aws:s3:::${var.environment}-citrine-files"
   s3_bucket_id = "${var.environment}-citrine-files"
-  sqs_queue_arn = ""
   tags = var.tags
 }

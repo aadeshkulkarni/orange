@@ -92,25 +92,38 @@ resource "aws_lb_target_group" "directus" {
   })
 }
 
-# HTTP Listener (redirect to HTTPS)
+# HTTP Listener (redirect to HTTPS only if certificate is provided)
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
 
-  default_action {
-    type = "redirect"
+  dynamic "default_action" {
+    for_each = var.certificate_arn != "" ? [1] : []
+    content {
+      type = "redirect"
 
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = var.certificate_arn == "" ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.citrine.arn
     }
   }
 }
 
-# HTTPS Listener for Citrine
+# HTTPS Listener for Citrine (only if certificate is provided)
 resource "aws_lb_listener" "https_citrine" {
+  count = var.certificate_arn != "" ? 1 : 0
+
   load_balancer_arn = aws_lb.main.arn
   port              = "443"
   protocol          = "HTTPS"
@@ -123,9 +136,11 @@ resource "aws_lb_listener" "https_citrine" {
   }
 }
 
-# HTTPS Listener Rule for Directus
+# HTTPS Listener Rule for Directus (only if certificate is provided)
 resource "aws_lb_listener_rule" "directus" {
-  listener_arn = aws_lb_listener.https_citrine.arn
+  count = var.certificate_arn != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.https_citrine[0].arn
   priority     = 100
 
   action {
@@ -140,9 +155,11 @@ resource "aws_lb_listener_rule" "directus" {
   }
 }
 
-# HTTPS Listener Rule for Citrine (default)
+# HTTPS Listener Rule for Citrine (default) (only if certificate is provided)
 resource "aws_lb_listener_rule" "citrine" {
-  listener_arn = aws_lb_listener.https_citrine.arn
+  count = var.certificate_arn != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.https_citrine[0].arn
   priority     = 200
 
   action {

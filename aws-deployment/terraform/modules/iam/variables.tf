@@ -39,19 +39,13 @@ variable "database_password_secret_arn" {
 }
 
 variable "s3_bucket_arn" {
-  description = "S3 bucket ARN for file storage"
+  description = "S3 bucket ARN"
   type        = string
 }
 
 variable "s3_bucket_id" {
-  description = "S3 bucket ID for file storage"
+  description = "S3 bucket ID"
   type        = string
-}
-
-variable "sqs_queue_arn" {
-  description = "SQS queue ARN for message processing"
-  type        = string
-  default     = ""
 }
 
 variable "tags" {
