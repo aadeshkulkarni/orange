@@ -9,7 +9,7 @@ availability_zones = ["us-east-1a", "us-east-1b"]
 # Database Configuration
 db_name = "citrine"
 db_username = "citrine"
-db_password = "CitrineOS2024!@#"
+db_password = "CitrineOS2024"
 db_instance_class = "db.t3.micro"
 db_allocated_storage = 20
 db_engine_version = "15.5"
