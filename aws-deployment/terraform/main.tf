@@ -35,7 +35,7 @@ module "ecr" {
   ]
 }
 
-# RDS Database
+# RDS PostgreSQL
 module "rds" {
   source = "./modules/rds"
 
@@ -47,6 +47,7 @@ module "rds" {
   db_password          = var.db_password
   db_instance_class    = var.db_instance_class
   db_allocated_storage = var.db_allocated_storage
+  db_engine_version    = var.db_engine_version
   allowed_security_group_ids = []  # Will be updated after ECS module is created
 }
 

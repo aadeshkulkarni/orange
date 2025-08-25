@@ -23,6 +23,12 @@ variable "db_username" {
   type        = string
 }
 
+variable "db_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "15.5"
+}
+
 variable "db_password" {
   description = "Database password"
   type        = string

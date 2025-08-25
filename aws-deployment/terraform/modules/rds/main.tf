@@ -34,7 +34,7 @@ resource "aws_db_instance" "main" {
   identifier = "${var.environment}-citrine-db"
 
   engine         = "postgres"
-  engine_version = "16"
+  engine_version = var.db_engine_version
   instance_class = var.db_instance_class
 
   allocated_storage     = var.db_allocated_storage
@@ -65,7 +65,7 @@ resource "aws_db_instance" "main" {
 }
 
 resource "aws_db_parameter_group" "main" {
-  family = "postgres16"
+  family = "postgres15"
   name   = "${var.environment}-citrine-db-params"
 
   parameter {
@@ -75,7 +75,7 @@ resource "aws_db_parameter_group" "main" {
 
   parameter {
     name  = "shared_preload_libraries"
-    value = "postgis"
+    value = "pg_stat_statements"
   }
 
   tags = merge(var.tags, {

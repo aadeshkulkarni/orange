@@ -52,6 +52,12 @@ variable "db_allocated_storage" {
   default     = 20
 }
 
+variable "db_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "15.5"
+}
+
 variable "redis_node_type" {
   description = "ElastiCache node type"
   type        = string
