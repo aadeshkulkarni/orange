@@ -17,20 +17,9 @@ resource "aws_ecs_service" "main" {
     container_port   = var.container_port
   }
 
-  depends_on = [aws_ecs_service_capacity_provider_strategy.main]
-
   tags = merge(var.tags, {
     Name = "${var.environment}-${var.service_name}-service"
   })
-}
-
-# Capacity Provider Strategy
-resource "aws_ecs_service_capacity_provider_strategy" "main" {
-  service_id = aws_ecs_service.main.id
-
-  capacity_provider = "FARGATE"
-  weight            = 1
-  base              = 0
 }
 
 # Auto Scaling
