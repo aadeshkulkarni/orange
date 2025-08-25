@@ -1,7 +1,8 @@
 services:
   amqp-broker:
-    image: rabbitmq:3.12-management
-    platform: linux/amd64
+    image: rabbitmq:3.13-management
+    platform: linux/arm64
+    container_name: amqp-broker
     ports:
       - 15672:15672
       - 5672:5672
@@ -88,6 +89,12 @@ services:
       # Skip authentication completely - use public access
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
+      # Database configuration
+      BOOTSTRAP_CITRINEOS_DATABASE_HOST: 'ocpp-db'
+      BOOTSTRAP_CITRINEOS_DATABASE_PORT: '5432'
+      BOOTSTRAP_CITRINEOS_DATABASE_NAME: 'citrine'
+      BOOTSTRAP_CITRINEOS_DATABASE_USERNAME: 'citrine'
+      BOOTSTRAP_CITRINEOS_DATABASE_PASSWORD: 'citrine'
     depends_on:
       ocpp-db:
         condition: service_healthy
@@ -185,4 +192,4 @@ services:
       interval: 5s
       timeout: 10s
       retries: 20
-      start_period: 5s 
+      start_period: 5s

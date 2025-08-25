@@ -1,0 +1,285 @@
+version: '3.8'
+
+services:
+  # Citrine Core Service
+  citrine:
+    image: ${ECR_REGISTRY}/citrine:${IMAGE_TAG:-latest}
+    container_name: citrine-core
+    restart: unless-stopped
+    environment:
+      # Application Configuration
+      APP_NAME: 'all'
+      APP_ENV: 'aws'
+      NODE_ENV: 'production'
+
+      # AWS Configuration
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+      # Database Configuration
+      BOOTSTRAP_CITRINEOS_DATABASE_HOST: ${DB_HOST}
+      BOOTSTRAP_CITRINEOS_DATABASE_PORT: ${DB_PORT:-5432}
+      BOOTSTRAP_CITRINEOS_DATABASE_NAME: ${DB_NAME:-citrine}
+      BOOTSTRAP_CITRINEOS_DATABASE_USERNAME: ${DB_USERNAME:-citrine}
+      BOOTSTRAP_CITRINEOS_DATABASE_PASSWORD: ${DB_PASSWORD}
+
+      # File Storage Configuration
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_TYPE: 's3'
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_S3_BUCKET: ${S3_BUCKET}
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_S3_REGION: ${AWS_REGION:-us-east-1}
+
+      # Directus Integration
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_DIRECTUS_HOST: directus
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_DIRECTUS_PORT: 8055
+      BOOTSTRAP_CITRINEOS_FILE_FILE_ACCESS_DIRECTUS_TOKEN: ${DIRECTUS_TOKEN}
+
+      # Redis Configuration
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # RabbitMQ Configuration
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+      - "8085:8085"
+      - "8443:8443"
+      - "8444:8444"
+      - "9229:9229"
+      - "8092:8092"
+
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - directus
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Directus CMS
+  directus:
+    image: ${ECR_REGISTRY}/directus:${IMAGE_TAG:-latest}
+    container_name: directus-cms
+    restart: unless-stopped
+    environment:
+      # Directus Configuration
+      KEY: ${DIRECTUS_KEY:-1234567890}
+      SECRET: ${DIRECTUS_SECRET:-0987654321}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@citrineos.com}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:-CitrineOS!}
+
+      # Database Configuration
+      DB_CLIENT: 'pg'
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_NAME:-citrine}
+      DB_USER: ${DB_USERNAME:-citrine}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # File Storage
+      STORAGE_LOCATIONS: 's3'
+      STORAGE_S3_DRIVER: 's3'
+      STORAGE_S3_KEY: ${AWS_ACCESS_KEY_ID}
+      STORAGE_S3_SECRET: ${AWS_SECRET_ACCESS_KEY}
+      STORAGE_S3_REGION: ${AWS_REGION:-us-east-1}
+      STORAGE_S3_BUCKET: ${S3_BUCKET}
+      STORAGE_S3_ENDPOINT: ${S3_ENDPOINT}
+
+      # Security
+      WEBSOCKETS_ENABLED: 'true'
+      RATE_LIMITER_ENABLED: 'true'
+      CACHE_ENABLED: 'true'
+      CACHE_STORE: 'redis'
+      CACHE_REDIS: 'redis://redis:6379'
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    ports:
+      - "8055:8055"
+
+    depends_on:
+      - postgres
+      - redis
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8055/server/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:16-3.5
+    container_name: citrine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-citrine}
+      POSTGRES_USER: ${DB_USERNAME:-citrine}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
+    ports:
+      - "5432:5432"
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-citrine} -d ${DB_NAME:-citrine}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: citrine-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+    volumes:
+      - redis_data:/data
+
+    ports:
+      - "6379:6379"
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: citrine-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_VHOST: /
+
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Hasura GraphQL Engine
+  hasura:
+    image: hasura/graphql-engine:v2.40.3.cli-migrations-v3
+    container_name: citrine-hasura
+    restart: unless-stopped
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${DB_USERNAME:-citrine}:${DB_PASSWORD}@postgres:${DB_PORT:-5432}/${DB_NAME:-citrine}
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+      HASURA_GRAPHQL_DEV_MODE: 'false'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: 'false'
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+
+    volumes:
+      - ./hasura-metadata:/hasura-metadata
+      - ./hasura-migrations:/hasura-migrations
+
+    ports:
+      - "8090:8080"
+
+    depends_on:
+      - postgres
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: citrine-nginx
+    restart: unless-stopped
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    depends_on:
+      - citrine
+      - directus
+      - hasura
+
+    networks:
+      - citrine-network
+
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  rabbitmq_logs:
+    driver: local
+
+networks:
+  citrine-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

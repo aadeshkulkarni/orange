@@ -1,0 +1,40 @@
+# AWS Configuration
+aws_region = "us-east-1"
+environment = "dev"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Database Configuration
+db_name = "citrine"
+db_username = "citrine"
+db_password = "your-secure-password-here"
+db_instance_class = "db.t3.micro"
+db_allocated_storage = 20
+
+# Redis Configuration
+redis_node_type = "cache.t3.micro"
+redis_num_cache_nodes = 1
+
+# Container Configuration
+citrine_cpu = 512
+citrine_memory = 1024
+directus_cpu = 256
+directus_memory = 512
+
+# Scaling Configuration
+min_capacity = 1
+max_capacity = 3
+
+# Domain Configuration (optional)
+domain_name = ""
+certificate_arn = ""
+
+# Tags
+tags = {
+  Project     = "CitrineOS"
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+  Owner       = "YourTeam"
+}
