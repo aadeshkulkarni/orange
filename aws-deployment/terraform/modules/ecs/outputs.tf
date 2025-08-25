@@ -37,3 +37,23 @@ output "directus_log_group_name" {
   description = "Directus CloudWatch log group name"
   value       = aws_cloudwatch_log_group.directus.name
 }
+
+output "citrine_task_role_arn" {
+  description = "Citrine ECS task role ARN"
+  value       = aws_iam_role.ecs_task_role.arn
+}
+
+output "directus_task_role_arn" {
+  description = "Directus ECS task role ARN"
+  value       = aws_iam_role.ecs_task_role.arn
+}
+
+output "citrine_task_role_name" {
+  description = "Citrine ECS task role name"
+  value       = aws_iam_role.ecs_task_role.name
+}
+
+output "directus_task_role_name" {
+  description = "Directus ECS task role name"
+  value       = aws_iam_role.ecs_task_role.name
+}
