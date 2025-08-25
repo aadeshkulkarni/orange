@@ -12,7 +12,7 @@ db_username = "citrine"
 db_password = "CitrineOS2024"
 db_instance_class = "db.t3.micro"
 db_allocated_storage = 20
-db_engine_version = "15.5"
+db_engine_version = "15.14"
 
 # Redis Configuration
 redis_node_type = "cache.t3.micro"
