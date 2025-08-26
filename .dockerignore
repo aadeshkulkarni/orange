@@ -21,7 +21,6 @@
 **/*.Dockerfile
 
 # Specific directories to ignore
-**/DirectusExtensions
 **/Swarm
 **/data
 
@@ -30,3 +29,10 @@
 !Server/src/
 !Server/src/config/
 !Server/src/config/sequelize.bridge.config.js
+
+# include DirectusExtensions for Directus builds
+!DirectusExtensions/
+!DirectusExtensions/charging-stations-bundle/
+!DirectusExtensions/charging-stations-bundle/src/
+!DirectusExtensions/charging-stations-bundle/package.json
+!DirectusExtensions/charging-stations-bundle/tsconfig.json

@@ -120,6 +120,25 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# HTTP Listener Rule for Directus (when no SSL certificate)
+resource "aws_lb_listener_rule" "directus_http" {
+  count = var.certificate_arn == "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.directus.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/admin*", "/server*", "/auth*"]
+    }
+  }
+}
+
 # HTTPS Listener for Citrine (only if certificate is provided)
 resource "aws_lb_listener" "https_citrine" {
   count = var.certificate_arn != "" ? 1 : 0
@@ -137,7 +156,7 @@ resource "aws_lb_listener" "https_citrine" {
 }
 
 # HTTPS Listener Rule for Directus (only if certificate is provided)
-resource "aws_lb_listener_rule" "directus" {
+resource "aws_lb_listener_rule" "directus_https" {
   count = var.certificate_arn != "" ? 1 : 0
 
   listener_arn = aws_lb_listener.https_citrine[0].arn

@@ -57,7 +57,7 @@ resource "aws_db_instance" "main" {
   skip_final_snapshot  = var.skip_final_snapshot
 
   performance_insights_enabled = var.performance_insights_enabled
-  monitoring_interval         = var.monitoring_interval
+  monitoring_interval         = 0  # Disable monitoring for development
 
   tags = merge(var.tags, {
     Name = "${var.environment}-citrine-db"

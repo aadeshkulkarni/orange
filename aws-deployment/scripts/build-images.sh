@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"  # Go up two levels to reach citrineos-core root
 
 # Function to print colored output
 print_status() {
@@ -94,7 +94,53 @@ check_prerequisites() {
         exit 1
     fi
 
+    # Check Docker buildx
+    if ! docker buildx version &> /dev/null; then
+        print_warning "Docker buildx not available. This may cause build issues."
+        print_warning "Consider installing buildx: https://docs.docker.com/go/buildx/"
+    fi
+
+    # Check Docker version
+    DOCKER_VERSION=$(docker --version | cut -d' ' -f3 | cut -d',' -f1)
+    print_status "Docker version: $DOCKER_VERSION"
+
+    # Verify project structure
+    verify_project_structure
+
     print_status "Prerequisites check passed."
+}
+
+# Verify project structure
+verify_project_structure() {
+    print_status "Verifying project structure..."
+
+    cd "$PROJECT_DIR"
+
+    # Check if we're in the right directory
+    if [[ ! -d "Server" ]] || [[ ! -d "DirectusExtensions" ]]; then
+        print_error "Invalid project structure. Expected Server/ and DirectusExtensions/ directories."
+        print_error "Current directory: $(pwd)"
+        print_error "Available directories:"
+        ls -la || true
+        exit 1
+    fi
+
+    # Check Dockerfiles
+    if [[ ! -f "Server/deploy.Dockerfile" ]]; then
+        print_error "Citrine Dockerfile not found at Server/deploy.Dockerfile"
+        print_error "Available files in Server/:"
+        ls -la Server/ || true
+        exit 1
+    fi
+
+    if [[ ! -f "DirectusExtensions/directus.Dockerfile" ]]; then
+        print_error "Directus Dockerfile not found at DirectusExtensions/directus.Dockerfile"
+        print_error "Available files in DirectusExtensions/:"
+        ls -la DirectusExtensions/ || true
+        exit 1
+    fi
+
+    print_status "Project structure verified successfully."
 }
 
 # Build Citrine image
@@ -103,11 +149,20 @@ build_citrine() {
 
     cd "$PROJECT_DIR"
 
-    # Build the image
-    docker build \
-        -t "citrine:$IMAGE_TAG" \
-        -f Server/deploy.Dockerfile \
-        .
+    # Try to build with buildx first, fallback to legacy builder
+    if docker buildx version &> /dev/null; then
+        print_status "Using Docker buildx..."
+        docker build \
+            -t "citrine:$IMAGE_TAG" \
+            -f Server/deploy.Dockerfile \
+            .
+    else
+        print_warning "Using legacy Docker builder (buildx not available)"
+        DOCKER_BUILDKIT=0 docker build \
+            -t "citrine:$IMAGE_TAG" \
+            -f Server/deploy.Dockerfile \
+            .
+    fi
 
     print_status "Citrine image built successfully: citrine:$IMAGE_TAG"
 }
@@ -118,11 +173,20 @@ build_directus() {
 
     cd "$PROJECT_DIR"
 
-    # Build the image
-    docker build \
-        -t "directus:$IMAGE_TAG" \
-        -f DirectusExtensions/directus.Dockerfile \
-        .
+    # Try to build with buildx first, fallback to legacy builder
+    if docker buildx version &> /dev/null; then
+        print_status "Using Docker buildx..."
+        docker build \
+            -t "directus:$IMAGE_TAG" \
+            -f DirectusExtensions/directus.Dockerfile \
+            .
+    else
+        print_warning "Using legacy Docker builder (buildx not available)"
+        DOCKER_BUILDKIT=0 docker build \
+            -t "directus:$IMAGE_TAG" \
+            -f DirectusExtensions/directus.Dockerfile \
+            .
+    fi
 
     print_status "Directus image built successfully: directus:$IMAGE_TAG"
 }
